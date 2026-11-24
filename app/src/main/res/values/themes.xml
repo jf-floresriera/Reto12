@@ -1,0 +1,5 @@
+<resources>
+    <!-- La UI real vive en Compose (ui/theme/Theme.kt); este estilo solo cubre la
+         ventana/splash antes de que Compose tome control, como exige Android. -->
+    <style name="Theme.MaizeLlm" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

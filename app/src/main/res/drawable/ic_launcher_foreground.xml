@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mismo motivo que assets/logo.svg (mazorca + granos), simplificado y centrado en el
+     lienzo de 108x108dp que exige un ícono adaptativo, dentro de la "zona segura" central. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- hojas -->
+    <path
+        android:pathData="M54,81 C24,76 14,52 30,28 C37,52 44,66 54,81 Z"
+        android:fillColor="#34A853" />
+    <path
+        android:pathData="M54,81 C84,76 94,52 78,28 C71,52 64,66 54,81 Z"
+        android:fillColor="#188038" />
+
+    <!-- mazorca -->
+    <path
+        android:pathData="M42,25 h24 a12,12 0 0 1 12,12 v44 a12,12 0 0 1 -12,12 h-24 a12,12 0 0 1 -12,-12 v-44 a12,12 0 0 1 12,-12 Z"
+        android:fillColor="#FBBC04" />
+
+    <!-- granos -->
+    <group>
+        <path android:pathData="M48,34 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" android:fillColor="#FFF8E1" />
+        <path android:pathData="M60,34 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" android:fillColor="#FFF8E1" />
+        <path android:pathData="M48,43 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" android:fillColor="#FFF8E1" />
+        <path android:pathData="M60,43 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" android:fillColor="#FFF8E1" />
+        <path android:pathData="M48,52 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" android:fillColor="#FFF8E1" />
+        <path android:pathData="M60,52 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" android:fillColor="#FFF8E1" />
+        <path android:pathData="M48,61 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" android:fillColor="#FFF8E1" />
+        <path android:pathData="M60,61 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" android:fillColor="#FFF8E1" />
+        <path android:pathData="M48,70 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" android:fillColor="#FFF8E1" />
+        <path android:pathData="M60,70 m-2.6,0 a2.6,2.6 0 1,0 5.2,0 a2.6,2.6 0 1,0 -5.2,0" android:fillColor="#FFF8E1" />
+    </group>
+</vector>

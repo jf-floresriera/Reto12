@@ -1,0 +1,8 @@
+Coloca aquí el modelo cuantizado antes de compilar:
+
+  maize_llama32_1b_Q4_K_M.gguf
+
+Es el archivo que genera la celda 5 de colab/preparar_modelo_android.py
+(~771 MB). Este archivo específico NO se sube a git (ver .gitignore) por su
+tamaño: cópialo manualmente desde tu Google Drive a esta carpeta en tu copia
+local del repositorio antes de compilar en Android Studio.

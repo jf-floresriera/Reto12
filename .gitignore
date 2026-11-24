@@ -1,0 +1,14 @@
+# Android / Gradle
+*.iml
+.gradle/
+local.properties
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# El modelo cuantizado es grande (~771 MB) y GitHub bloquea archivos >100 MB
+# sin Git LFS. Se queda fuera del repo a propósito (ver app/src/main/assets/models/LEEME.txt).
+app/src/main/assets/models/*.gguf

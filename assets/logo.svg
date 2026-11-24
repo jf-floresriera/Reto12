@@ -1,0 +1,25 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- hojas -->
+  <path d="M100 150 C 40 140, 20 90, 55 40 C 70 90, 85 120, 100 150 Z" fill="#34a853"/>
+  <path d="M100 150 C 160 140, 180 90, 145 40 C 130 90, 115 120, 100 150 Z" fill="#188038"/>
+  <!-- mazorca -->
+  <rect x="78" y="35" width="44" height="120" rx="22" fill="#fbbc04"/>
+  <!-- granos -->
+  <g fill="#fff8e1">
+    <circle cx="90" cy="50" r="5"/><circle cx="110" cy="50" r="5"/>
+    <circle cx="90" cy="65" r="5"/><circle cx="110" cy="65" r="5"/>
+    <circle cx="90" cy="80" r="5"/><circle cx="110" cy="80" r="5"/>
+    <circle cx="90" cy="95" r="5"/><circle cx="110" cy="95" r="5"/>
+    <circle cx="90" cy="110" r="5"/><circle cx="110" cy="110" r="5"/>
+    <circle cx="90" cy="125" r="5"/><circle cx="110" cy="125" r="5"/>
+    <circle cx="90" cy="140" r="5"/><circle cx="110" cy="140" r="5"/>
+  </g>
+  <!-- circuito: representa la inferencia on-device -->
+  <g stroke="#1a73e8" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M30 175 h30 M140 175 h30 M60 175 v-10 M100 175 v-10 M140 175 v-10"/>
+  </g>
+  <g fill="#1a73e8">
+    <circle cx="30" cy="175" r="4"/><circle cx="60" cy="165" r="4"/>
+    <circle cx="100" cy="165" r="4"/><circle cx="140" cy="165" r="4"/><circle cx="170" cy="175" r="4"/>
+  </g>
+</svg>
