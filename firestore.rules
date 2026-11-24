@@ -1,0 +1,37 @@
+rules_version = '2';
+
+// Reglas de seguridad de Cloud Firestore para Agro IA.
+// Copiar y pegar en: Consola de Firebase > Firestore Database > Reglas > Publicar.
+//
+// La consola de Firebase (el administrador) no pasa por estas reglas: desde ahí se
+// puede editar cualquier campo, incluido `plan`.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /usuarios/{uid} {
+      function esDueno() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+
+      // Cada usuario solo puede leer su propio registro.
+      allow read: if esDueno();
+
+      // Registro inicial: siempre empieza en el plan gratis y con el contador en cero.
+      allow create: if esDueno()
+        && request.resource.data.plan == 'gratis'
+        && request.resource.data.tokensTotales == 0
+        && request.resource.data.tokensHoy == 0;
+
+      // La app puede actualizar el perfil, sumar tokens y registrar una solicitud de plan,
+      // pero no puede cambiar su propio plan ni bajar sus contadores.
+      allow update: if esDueno()
+        && request.resource.data.plan == resource.data.plan
+        && request.resource.data.tokensTotales >= resource.data.tokensTotales
+        && (request.resource.data.fechaConsumo != resource.data.fechaConsumo
+            || request.resource.data.tokensHoy >= resource.data.tokensHoy);
+
+      // Solo el administrador (desde la consola) borra usuarios.
+      allow delete: if false;
+    }
+  }
+}

@@ -28,6 +28,63 @@
 
 ---
 
+## 🔐 Reto 12: Delegando la autenticación
+
+Este repositorio parte de la app del Reto 11 y le agrega inicio de sesión con **GitHub** a través de
+**Firebase Authentication**, más un registro de usuarios y planes de uso en **Cloud Firestore**.
+
+**Cómo cumple el reto:**
+
+| Requisito | Cómo se resuelve |
+|---|---|
+| Proveedor externo de autenticación | GitHub (OAuth), gestionado por Firebase Authentication |
+| La app no almacena contraseñas | La app nunca ve la contraseña: solo recibe el uid y el perfil público de GitHub |
+| Redirección al servicio del tercero | El botón "Iniciar sesión con GitHub" abre la página de GitHub en el navegador, que pide las credenciales |
+| Mensaje de éxito o fallo | Diálogo "Autenticación exitosa" (con el usuario de GitHub) o "Autenticación fallida" (con el motivo: sin Internet, cancelado, rechazado, etc.) |
+
+**Uso de Internet:** solo se necesita para el primer inicio de sesión. Después, la sesión y el registro
+del usuario quedan guardados en el teléfono, el modelo sigue corriendo local y el chat funciona sin
+conexión. El consumo de tokens se guarda en el teléfono y se envía a Firestore cuando vuelve la conexión.
+
+**Planes** (se cambian desde la consola de Firebase, campo `plan` del usuario):
+
+| Plan | Límite |
+|---|---|
+| Gratis | 1.000 tokens en total, de prueba |
+| Pro | 10.000 tokens por día |
+| Ultra Plus | Ilimitado |
+| Bloqueado | Sin acceso |
+
+Se cuentan los tokens que genera el modelo en cada respuesta. Si al usuario le quedan menos tokens que el
+máximo por respuesta (320), la respuesta se recorta para no pasarse del límite. Al agotarse, la caja de
+texto se reemplaza por un aviso con el botón "Ver planes".
+
+**Pago simulado:** todavía no hay cobro. Al solicitar un plan se abre WhatsApp con un mensaje para el
+administrador que incluye el usuario de GitHub, el correo y el ID. El administrador cambia el plan en
+Firebase. El número se configura en `gradle.properties` (`agroia.whatsappPagos`).
+
+**Puesta en marcha:** sigue [docs/CONFIGURACION_FIREBASE.md](docs/CONFIGURACION_FIREBASE.md) (crear el
+proyecto de Firebase, la OAuth App de GitHub, la base de datos, y compilar el APK con GitHub Actions).
+
+**Archivos nuevos o modificados:**
+
+- `data/AuthRepository.kt`: inicio de sesión con GitHub mediante Firebase Auth.
+- `data/CuentaRepository.kt`: registro del usuario, plan y consumo de tokens en Firestore, con caché local.
+- `domain/Planes.kt`: definición de los planes y cálculo de tokens disponibles.
+- `domain/ContactoPagos.kt`: mensaje y enlace de WhatsApp para solicitar un plan.
+- `ui/CuentaViewModel.kt`, `ui/CuentaScreens.kt`: pantalla de inicio de sesión, diálogo de resultado,
+  barra del plan, aviso de tokens agotados y diálogo "Mi plan".
+- `ui/ChatViewModel.kt`, `ui/ChatScreen.kt`, `MainActivity.kt`: control de cuota y menú "Mi plan" / "Cerrar sesión".
+- `firestore.rules`: el usuario no puede cambiar su propio plan ni bajar sus contadores.
+- `.github/workflows/build-apk.yml`: toma `google-services.json` del repo o de un secret y puede publicar el APK como Release.
+
+**Limitaciones conocidas:** el contador diario del plan Pro usa la fecha del teléfono, así que un usuario
+que cambie la fecha podría reiniciarlo. Las reglas de Firestore impiden subirse de plan o bajar el
+contador total, pero el control de cuota ocurre en la app. Un cobro real con Google Play Billing o una
+pasarela de pagos necesitaría un servidor (por ejemplo Cloud Functions) que valide el pago y cambie el plan.
+
+---
+
 ## 💡 Resumen ejecutivo
 
 <p align="center">
@@ -207,16 +264,17 @@ llama.cpp desde cero con NDK/CMake — menos piezas que pueden fallar en un proy
 - `data/ModelRepository.kt` — carga el modelo y genera respuestas.
 - `ui/` — pantalla de chat (Compose) + `ChatViewModel`.
 
-**Importante — no compilado en este entorno:** este sandbox no tiene Android SDK/NDK, así que el proyecto se
-escribió con cuidado pero no se compiló ni se corrió aquí. Antes de dar por buena la app:
+**Compilación:** el código del Reto 12 se compiló (`assembleDebug`) sin el modelo y con una configuración de
+Firebase de prueba; falta probarlo en un celular con el proyecto de Firebase real. Para compilar localmente:
 
 1. Copia tu `maize_llama32_1b_Q4_K_M.gguf` (el que genera `colab/preparar_modelo_android.py`) a
    `app/src/main/assets/models/` (ver `LEEME.txt` en esa carpeta). Ese archivo no está en git —GitHub bloquea
    binarios de más de 100 MB sin Git LFS— así que se queda local en tu copia del repo.
-2. Abre la carpeta raíz del repo en Android Studio y deja que sincronice (instalará el SDK/NDK que falte).
-3. Compila y corre en un **celular físico arm64** (el AAR gratuito de llama.cpp solo trae binarios arm64-v8a;
+2. Copia tu `google-services.json` a `app/` (ver [docs/CONFIGURACION_FIREBASE.md](docs/CONFIGURACION_FIREBASE.md)).
+3. Abre la carpeta raíz del repo en Android Studio y deja que sincronice (instalará el SDK/NDK que falte).
+4. Compila y corre en un **celular físico arm64** (el AAR gratuito de llama.cpp solo trae binarios arm64-v8a;
    el emulador estándar x86_64 no va a cargar el modelo).
-4. Si Android Studio marca `menuAnchor()` como obsoleto, es un cambio de API menor y seguro de aceptar
+5. Si Android Studio marca `menuAnchor()` como obsoleto, es un cambio de API menor y seguro de aceptar
    (está documentado en el propio archivo `ui/ChatScreen.kt`).
 
 El tema visual (`ui/theme/Theme.kt`) está en Material 3 neutro a propósito, pendiente de una referencia de

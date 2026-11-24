@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -14,8 +15,13 @@ android {
         // del proyecto es RAM (6 GB+), no versión de Android.
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
+
+        // Número de WhatsApp al que se envían las solicitudes de plan (pago simulado).
+        // Se cambia en gradle.properties (agroia.whatsappPagos), sin "+" ni espacios.
+        val whatsapp = (project.findProperty("agroia.whatsappPagos") as String?)?.trim().orEmpty()
+        buildConfigField("String", "WHATSAPP_PAGOS", "\"$whatsapp\"")
     }
 
     buildTypes {
@@ -28,12 +34,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     // La versión del compilador de Compose ya la resuelve el plugin
     // org.jetbrains.kotlin.plugin.compose a partir de la versión de Kotlin;
@@ -53,6 +57,12 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
@@ -69,6 +79,13 @@ dependencies {
     // Inferencia on-device: AAR precompilado de llama.cpp, sin NDK/CMake propios.
     // MIT, Maven Central. https://github.com/ffmpegkit-maintained/llama-android
     implementation("dev.ffmpegkit-maintained:llama-android:0.1.1")
+
+    // Autenticación delegada (GitHub vía Firebase Auth) y registro de usuarios/planes (Firestore).
+    implementation(platform("com.google.firebase:firebase-bom:35.2.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    // .await() sobre las Task de Firebase dentro de corrutinas.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

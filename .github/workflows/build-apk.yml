@@ -8,12 +8,25 @@ on:
     inputs:
       modelo_url:
         description: >
-          URL de descarga directa del .gguf (el asset de un Release de este repo,
-          ver README). Si se deja vacío, compila sin el modelo: sirve para
-          comprobar que el código compila, pero el APK resultante no va a
-          funcionar hasta que se le agregue el modelo.
+          URL de descarga directa del .gguf (el asset de un Release, ver README).
+          Si se deja vacío, compila sin el modelo: sirve para comprobar que el
+          código compila, pero el APK resultante no va a funcionar hasta que se
+          le agregue el modelo.
         required: false
         type: string
+      publicar_release:
+        description: "Publicar el APK como Release de GitHub (para distribuirlo)"
+        required: false
+        type: boolean
+        default: false
+      version:
+        description: "Etiqueta del Release, p. ej. v0.2.0 (solo si se publica)"
+        required: false
+        type: string
+        default: "v0.2.0"
+
+permissions:
+  contents: write # necesario solo para crear el Release
 
 jobs:
   build:
@@ -27,6 +40,21 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+
+      # La configuración de Firebase (app/google-services.json) puede estar subida al
+      # repo o guardada como secret GOOGLE_SERVICES_JSON (Settings > Secrets and
+      # variables > Actions). Si existe el secret, tiene prioridad.
+      - name: Preparar google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          fi
+          if [ ! -f app/google-services.json ]; then
+            echo "::error::Falta app/google-services.json. Súbelo al repo o crea el secret GOOGLE_SERVICES_JSON (ver README, sección Configuración de Firebase)."
+            exit 1
+          fi
 
       - name: Descargar el modelo cuantizado (si se dio una URL)
         if: ${{ inputs.modelo_url != '' }}
@@ -44,6 +72,16 @@ jobs:
       - name: Subir el APK generado
         uses: actions/upload-artifact@v4
         with:
-          name: maize-ia-debug-apk
+          name: agro-ia-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Publicar Release con el APK
+        if: ${{ inputs.publicar_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk "agro-ia-${{ inputs.version }}.apk"
+          gh release create "${{ inputs.version }}" "agro-ia-${{ inputs.version }}.apk" \
+            --title "Agro IA ${{ inputs.version }}" \
+            --notes "APK de Agro IA con inicio de sesión con GitHub. Instalar en Android 7.0 o superior (6 GB de RAM recomendados)."

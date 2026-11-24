@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -69,14 +71,22 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jffloresriera.maizellm.R
 import com.jffloresriera.maizellm.data.Tema
+import com.jffloresriera.maizellm.domain.Cuotas
 import com.jffloresriera.maizellm.domain.Lang
 import com.jffloresriera.maizellm.domain.Level
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
+fun ChatScreen(
+    usuario: UsuarioSesion,
+    cuentaViewModel: CuentaViewModel,
+    viewModel: ChatViewModel = viewModel(),
+) {
     val estado by viewModel.uiState.collectAsState()
+    val estadoCuenta by cuentaViewModel.uiState.collectAsState()
+    val cuenta = estadoCuenta.cuenta
+    val puedeEscribir = cuenta != null && Cuotas.puedeGenerar(cuenta)
     val contexto = LocalContext.current
 
     // Sonido corto cuando la respuesta queda lista (no es una notificación del
@@ -91,6 +101,36 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
     var menuAbierto by remember { mutableStateOf(false) }
     var dialogoAcercaDeAbierto by remember { mutableStateOf(false) }
     var dialogoConfigAbierto by remember { mutableStateOf(false) }
+    var dialogoPlanesAbierto by remember { mutableStateOf(false) }
+    var dialogoCerrarSesionAbierto by remember { mutableStateOf(false) }
+
+    if (dialogoPlanesAbierto) {
+        DialogoPlanes(
+            cuenta = cuenta,
+            usuario = usuario,
+            mensajePlan = estadoCuenta.mensajePlan,
+            onSolicitar = cuentaViewModel::registrarSolicitud,
+            onRefrescar = cuentaViewModel::refrescarPlan,
+            onCerrar = { dialogoPlanesAbierto = false; cuentaViewModel.descartarMensajePlan() },
+        )
+    }
+    if (dialogoCerrarSesionAbierto) {
+        AlertDialog(
+            onDismissRequest = { dialogoCerrarSesionAbierto = false },
+            title = { Text("Cerrar sesión") },
+            text = { Text("Para volver a entrar necesitarás Internet para iniciar sesión con GitHub.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    dialogoCerrarSesionAbierto = false
+                    viewModel.borrarConversacion()
+                    cuentaViewModel.cerrarSesion()
+                }) { Text("Cerrar sesión") }
+            },
+            dismissButton = {
+                TextButton(onClick = { dialogoCerrarSesionAbierto = false }) { Text("Cancelar") }
+            },
+        )
+    }
 
     if (dialogoAcercaDeAbierto) {
         DialogoAcercaDe(onCerrar = { dialogoAcercaDeAbierto = false })
@@ -125,6 +165,11 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
                     }
                     DropdownMenu(expanded = menuAbierto, onDismissRequest = { menuAbierto = false }) {
                         DropdownMenuItem(
+                            text = { Text("Mi plan") },
+                            leadingIcon = { Icon(Icons.Filled.WorkspacePremium, contentDescription = null) },
+                            onClick = { menuAbierto = false; dialogoPlanesAbierto = true },
+                        )
+                        DropdownMenuItem(
                             text = { Text("Acerca de") },
                             leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) },
                             onClick = { menuAbierto = false; dialogoAcercaDeAbierto = true },
@@ -151,6 +196,11 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
                             leadingIcon = { Icon(Icons.Filled.DeleteSweep, contentDescription = null) },
                             onClick = { menuAbierto = false; viewModel.borrarConversacion() },
                         )
+                        DropdownMenuItem(
+                            text = { Text("Cerrar sesión") },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null) },
+                            onClick = { menuAbierto = false; dialogoCerrarSesionAbierto = true },
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -167,6 +217,8 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
                 .padding(padding)
                 .imePadding(), // empuja el contenido hacia arriba cuando el teclado está abierto
         ) {
+
+            BarraPlan(cuenta = cuenta, onClick = { dialogoPlanesAbierto = true })
 
             SelectorIdiomaYNivel(
                 lang = estado.lang,
@@ -192,6 +244,9 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
                         mostrarMetricas = estado.mostrarMetricas,
                         lang = estado.lang,
                         onEnviar = viewModel::enviarPregunta,
+                        bloqueo = if (puedeEscribir) null else {
+                            { AvisoSinTokens(cuenta = cuenta, onVerPlanes = { dialogoPlanesAbierto = true }) }
+                        },
                         modifier = Modifier.weight(1f),
                     )
             }
@@ -374,6 +429,8 @@ private fun ConversacionLista(
     lang: Lang,
     onEnviar: (String) -> Unit,
     modifier: Modifier = Modifier,
+    // Si no es null, reemplaza la caja de texto (sin tokens o acceso bloqueado).
+    bloqueo: (@Composable () -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
     // Se desplaza solo hasta abajo cada vez que hay un mensaje nuevo o mientras
@@ -401,6 +458,11 @@ private fun ConversacionLista(
                     }
                 }
             }
+        }
+
+        if (bloqueo != null && !generandoRespuesta) {
+            bloqueo()
+            return@Column
         }
 
         var texto by rememberSaveable { mutableStateOf("") }

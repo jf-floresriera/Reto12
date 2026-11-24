@@ -7,8 +7,10 @@ import com.jffloresriera.maizellm.data.InstallProgress
 import com.jffloresriera.maizellm.data.ModelAssetInstaller
 import com.jffloresriera.maizellm.data.ModelRepository
 import com.jffloresriera.maizellm.data.Preferencias
+import com.jffloresriera.maizellm.data.Servicios
 import com.jffloresriera.maizellm.data.Tema
 import com.jffloresriera.maizellm.domain.Citas
+import com.jffloresriera.maizellm.domain.Cuotas
 import com.jffloresriera.maizellm.domain.DoseGuardrail
 import com.jffloresriera.maizellm.domain.Lang
 import com.jffloresriera.maizellm.domain.Level
@@ -68,6 +70,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val installer = ModelAssetInstaller(application)
     private val repository = ModelRepository()
     private val preferencias = Preferencias(application)
+    private val cuentas = Servicios.cuenta
 
     private val _uiState = MutableStateFlow(
         ChatUiState(
@@ -134,6 +137,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun enviarPregunta(pregunta: String) {
         if (pregunta.isBlank() || _uiState.value.estadoModelo != EstadoModelo.Listo) return
+        if (_uiState.value.generandoRespuesta) return
+
+        // Control de cuota del plan (ver domain/Planes.kt). Se revisa con la copia local
+        // del registro en Firestore, así que funciona sin Internet.
+        val cuenta = cuentas.cuenta.value ?: return
+        if (!Cuotas.puedeGenerar(cuenta)) return
+        // Si al plan le quedan menos tokens que el máximo por respuesta, se recorta la
+        // respuesta para no pasarse del límite (p. ej. los 1.000 del plan Gratis).
+        val maxTokens = Cuotas.disponibles(cuenta)?.coerceAtMost(MAX_TOKENS_RESPUESTA.toLong())?.toInt()
+            ?: MAX_TOKENS_RESPUESTA
 
         val estadoActual = _uiState.value
         _uiState.update {
@@ -149,7 +162,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 // La librería gratuita no da streaming real del modelo: la respuesta
                 // completa llega de una sola vez aquí. Lo que sigue (revelarEnPantalla)
                 // es solo una animación visual sobre el texto ya generado.
-                val resultado = repository.preguntar(systemPrompt, pregunta)
+                val resultado = repository.preguntar(systemPrompt, pregunta, maxTokens)
+                cuentas.registrarConsumo(resultado.tokensGenerated)
                 revelarEnPantalla(
                     textoCompleto = resultado.text,
                     tokensGenerados = resultado.tokensGenerated,
@@ -237,6 +251,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         Level.AGRICULTOR -> "Agricultor"
         Level.TECNICO -> "Técnico"
         Level.CIENTIFICO -> "Científico"
+    }
+
+    private companion object {
+        const val MAX_TOKENS_RESPUESTA = 320
     }
 
     override fun onCleared() {
